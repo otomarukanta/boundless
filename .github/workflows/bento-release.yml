@@ -25,7 +25,6 @@ env:
 jobs:
   build-bento:
     name: Build Bento Components
-    runs-on: [ self-hosted, prod, "Linux", "cpu" ]
     permissions:
       contents: read    # Required for checkout
       id-token: write   # Required for OIDC authentication with AWS
@@ -147,7 +146,6 @@ jobs:
     name: Create GitHub Release
     needs: build-bento
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/bento-v') && github.event.inputs.dry_run != 'true'
-    runs-on: [ self-hosted, prod, "Linux", "cpu" ]
     permissions:
       contents: write
       id-token: write
