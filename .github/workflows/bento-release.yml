@@ -119,6 +119,10 @@ jobs:
           cp target/${{ matrix.target }}/release/rest_api ../binaries/${{ matrix.artifact_name }}/bento-bundle/bento-rest-api
           cp target/${{ matrix.target }}/release/bento_cli ../binaries/${{ matrix.artifact_name }}/bento-bundle/bento-cli
 
+          # cpu-only agent
+          cargo build --release --target ${{ matrix.target }} --bin agent
+          cp target/${{ matrix.target }}/release/agent ../binaries/${{ matrix.artifact_name }}/bento-bundle/bento-agent
+
           # Create bundle archive
           cd ../binaries/${{ matrix.artifact_name }}
           tar -czf bento-bundle-${{ matrix.artifact_name }}.tar.gz bento-bundle/
