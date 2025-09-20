@@ -25,7 +25,7 @@ env:
 jobs:
   build-bento:
     name: Build Bento Components
-    runs-on: [ self-hosted, prod, "Linux", "cpu" ]
+    runs-on: 'ubuntu-24.04'
     permissions:
       contents: read    # Required for checkout
       id-token: write   # Required for OIDC authentication with AWS
@@ -64,9 +64,6 @@ jobs:
           echo "=== CUDA Paths ==="
           ls -la /usr/local/cuda/bin/ || echo "CUDA bin not found"
           ls -la /usr/bin/gcc || echo "System gcc not found"
-
-      - name: setup sccache + s3
-        uses: ./.github/actions/sccache
 
       - name: Setup Rust toolchain
         uses: risc0/risc0/.github/actions/rustup@v3.0.3
@@ -143,7 +140,7 @@ jobs:
     name: Create GitHub Release
     needs: build-bento
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/bento-v') && github.event.inputs.dry_run != 'true'
-    runs-on: [ self-hosted, prod, "Linux", "cpu" ]
+    runs-on: 'ubuntu-24.04'
     permissions:
       contents: write
       id-token: write
