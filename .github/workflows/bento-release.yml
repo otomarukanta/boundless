@@ -125,9 +125,6 @@ jobs:
           tar -czf bento-bundle-${{ matrix.artifact_name }}.tar.gz bento-bundle/
           rm -rf bento-bundle/
 
-      - name: sccache stats
-        run: sccache --show-stats
-
       - name: Create checksums
         working-directory: binaries/${{ matrix.artifact_name }}
         run: |
