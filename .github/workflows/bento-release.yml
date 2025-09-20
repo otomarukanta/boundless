@@ -1,5 +1,9 @@
 name: Build and Release Bento Components
 
+defaults:
+  run:
+    shell: bash -leo pipefail {0}
+
 on:
   push:
     tags:
