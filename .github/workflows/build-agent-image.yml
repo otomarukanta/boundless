@@ -71,22 +71,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check binary URL
-        run: |
-          if [ -z "${BINARY_URL}" ]; then
-            echo "No BINARY_URL provided. Set secrets.AGENT_BINARY_URL or dispatch with input." >&2
-          else
-            echo "Using BINARY_URL=${BINARY_URL}"
-          fi
-
       - name: Build agent image
-        if: env.BINARY_URL != ''
         uses: docker/build-push-action@v6
         with:
           context: .
           file: dockerfiles/agent.prebuilt.dockerfile
           build-args: |
-            BINARY_URL=${{ env.BINARY_URL }}
+            BINARY_URL='https://github.com/boundless-xyz/boundless/releases/download/bento-v1.0.1/bento-bundle-linux-amd64.tar.gz'
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
