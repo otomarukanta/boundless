@@ -1,0 +1,86 @@
+name: Build Agent Docker Image
+
+on:
+  push:
+    paths:
+      - 'dockerfiles/agent.prebuilt.dockerfile'
+      - 'dockerfiles/sccache-setup.sh'
+      - 'dockerfiles/sccache-config.sh'
+      - 'bento/**'
+      - 'crates/**'
+      - 'lib/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - '.github/workflows/build-agent-image.yml'
+  pull_request:
+    paths:
+      - 'dockerfiles/agent.prebuilt.dockerfile'
+      - 'dockerfiles/sccache-setup.sh'
+      - 'dockerfiles/sccache-config.sh'
+      - 'bento/**'
+      - 'crates/**'
+      - 'lib/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+  workflow_dispatch:
+    inputs:
+      binary_url:
+        description: 'URL to bento-bundle tar.gz containing bento-agent'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-image:
+    name: Build agent image (no push)
+    runs-on: ubuntu-latest
+    env:
+      BINARY_URL: ${{ inputs.binary_url || secrets.AGENT_BINARY_URL || '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/${{ github.repository_owner }}/boundless-agent
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=ref,event=branch
+            type=sha
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build agent image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfiles/agent.prebuilt.dockerfile
+          build-args: |
+            BINARY_URL=https://github.com/boundless-xyz/boundless/releases/download/bento-v1.0.1/bento-bundle-linux-amd64.tar.gz
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
