@@ -3,7 +3,7 @@ name: Build Agent Docker Image
 on:
   push:
     paths:
-      - 'dockerfiles/agent.dockerfile'
+      - 'dockerfiles/agent.prebuilt.dockerfile'
       - 'dockerfiles/sccache-setup.sh'
       - 'dockerfiles/sccache-config.sh'
       - 'bento/**'
@@ -14,7 +14,7 @@ on:
       - '.github/workflows/build-agent-image.yml'
   pull_request:
     paths:
-      - 'dockerfiles/agent.dockerfile'
+      - 'dockerfiles/agent.prebuilt.dockerfile'
       - 'dockerfiles/sccache-setup.sh'
       - 'dockerfiles/sccache-config.sh'
       - 'bento/**'
@@ -23,6 +23,11 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
   workflow_dispatch:
+    inputs:
+      binary_url:
+        description: 'URL to bento-bundle tar.gz containing bento-agent'
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +37,8 @@ jobs:
   build-image:
     name: Build agent image (no push)
     runs-on: ubuntu-latest
+    env:
+      BINARY_URL: ${{ inputs.binary_url || secrets.AGENT_BINARY_URL || '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,17 +71,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check binary URL
+        run: |
+          if [ -z "${BINARY_URL}" ]; then
+            echo "No BINARY_URL provided. Set secrets.AGENT_BINARY_URL or dispatch with input." >&2
+          else
+            echo "Using BINARY_URL=${BINARY_URL}"
+          fi
+
       - name: Build agent image
+        if: env.BINARY_URL != ''
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: dockerfiles/agent.dockerfile
+          file: dockerfiles/agent.prebuilt.dockerfile
+          build-args: |
+            BINARY_URL=${{ env.BINARY_URL }}
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
-          # Provide an empty credentials file to satisfy the Dockerfile's secret mount
-          secrets: |
-            id=ci_cache_creds,src=dockerfiles/ci-cache-creds.txt
           cache-from: type=gha
           cache-to: type=gha,mode=max
